@@ -60,3 +60,6 @@ coverage/
 *.jks
 *.keystore
 key.properties
+
+# Internal documentation — DO NOT commit
+docs/
