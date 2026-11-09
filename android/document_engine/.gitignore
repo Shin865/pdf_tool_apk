@@ -1,0 +1,8 @@
+# android/document_engine/.gitignore
+# Build outputs only — source stays tracked
+build/
+.gradle/
+local.properties
+*.aar
+*.so
+

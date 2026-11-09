@@ -1,0 +1,5 @@
+DOKUMEN REVIEWER - TAHAP 3 PENGUJIAN TEKS
+Aplikasi pembaca dan pengulas dokumen offline untuk Android.
+Line 3: Universal Android Compatibility minSdk 26.
+Line 4: Dukungan berkas teks besar dengan pembacaan berbasis chunk.
+Line 5: Baris terakhir berkas teks pengujian.

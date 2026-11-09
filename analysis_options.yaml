@@ -1,0 +1,23 @@
+include: package:very_good_analysis/analysis_options.yaml
+
+analyzer:
+  errors:
+    # Treat these as errors
+    missing_return: error
+    dead_code: warning
+    unused_import: warning
+    unused_local_variable: warning
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "**/*.drift.dart"
+    - "test/fixtures/**"
+
+linter:
+  rules:
+    # Relax a few rules that conflict with Flutter patterns
+    public_member_api_docs: false  # Will enable later when API stabilizes
+    lines_longer_than_80_chars: false  # Allow up to 120 chars
+    flutter_style_todos: false
+    one_member_abstracts: false  # Our engine interfaces start with 1 method
+    require_trailing_commas: false
