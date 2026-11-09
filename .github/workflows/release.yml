@@ -66,12 +66,10 @@ jobs:
           echo "Verifying keystore password with keytool..."
           keytool -list -keystore android/app/keystore/release.keystore -storepass "$KEYSTORE_PASSWORD"
 
-          cat <<EOF > android/key.properties
-storePassword=$KEYSTORE_PASSWORD
-keyPassword=$KEY_PASSWORD
-keyAlias=$KEY_ALIAS
-storeFile=$GITHUB_WORKSPACE/android/app/keystore/release.keystore
-EOF
+          echo "storePassword=$KEYSTORE_PASSWORD" > android/key.properties
+          echo "keyPassword=$KEY_PASSWORD" >> android/key.properties
+          echo "keyAlias=$KEY_ALIAS" >> android/key.properties
+          echo "storeFile=$GITHUB_WORKSPACE/android/app/keystore/release.keystore" >> android/key.properties
 
       - name: Build Split per ABI APKs
         run: flutter build apk --release --split-per-abi
