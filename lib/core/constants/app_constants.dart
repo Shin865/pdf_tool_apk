@@ -77,7 +77,7 @@ abstract final class DbConstants {
 /// App metadata.
 abstract final class AppConstants {
   static const String appName = 'Document Reviewer';
-  static const String appVersion = '1.0.0';
+  static const String appVersion = '0.1.0-beta.1';
   static const String orgName = 'com.example.documentreviewer';
   static const String workingCopyDirName = 'working';
 }

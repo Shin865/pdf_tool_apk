@@ -1,0 +1,10 @@
+# Example key.properties for Document Reviewer
+# Copy this file to 'android/key.properties' and fill in your actual keystore credentials.
+# IMPORTANT: Never commit 'key.properties' or your keystore file to version control.
+# Both are ignored by .gitignore.
+
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=documentreviewer
+# Use either absolute path or relative to android/ directory:
+storeFile=C:\\Users\\ACER\\.android\\document-reviewer-release.keystore

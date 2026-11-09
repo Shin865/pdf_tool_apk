@@ -11,6 +11,40 @@
 
 ---
 
+## 📥 Unduh Aplikasi (Download Releases)
+
+Unduh paket instalasi APK resmi dari [GitHub Releases](../../releases). Pilih varian APK yang sesuai dengan arsitektur perangkat Anda:
+
+| Berkas APK | Target Perangkat / ABI | Ukuran Perkiraan | Kapan Memilih Varian Ini? |
+|---|---|:---:|---|
+| `DocumentReviewer-*-arm64-v8a.apk` | ARM 64-bit | ~35 MB | **Rekomendasi Utama**. Sebagian besar ponsel Android modern (rilisan 2017 ke atas). |
+| `DocumentReviewer-*-armeabi-v7a.apk`| ARM 32-bit | ~33 MB | Ponsel Android generasi lama atau perangkat berdaya rendah (Android Go). |
+| `DocumentReviewer-*-x86_64.apk` | Intel / AMD 64-bit | ~36 MB | Emulator Android di PC, Chromebook, atau Windows Subsystem for Android (WSA). |
+| `DocumentReviewer-*-universal.apk` | Universal (Semua ABI) | ~18 MB | Pilih jika Anda tidak mengetahui arsitektur perangkat Anda. |
+
+### 🔒 Panduan Instalasi & Keamanan
+1. **Izin Instalasi Berkas**:
+   - Saat membuka APK, sistem Android akan meminta izin *"Instal aplikasi yang tidak dikenal"* (Install unknown apps).
+   - Berikan izin tersebut **hanya untuk aplikasi pengelola berkas atau browser** yang sedang Anda pakai untuk mengunduh. Setelah instalasi selesai, Anda disarankan untuk mencabut kembali izin tersebut di Pengaturan Sistem.
+2. **Peringatan Google Play Protect**:
+   - Munculnya peringatan *"Aplikasi tidak dikenal"* atau *"Play Protect tidak mengenali pengembang aplikasi ini"* adalah perilaku standar Android untuk seluruh aplikasi yang dipasang di luar Google Play Store.
+   - Ketuk **"Detail selengkapnya"** lalu pilih **"Tetap instal"** (*Install anyway*). Aplikasi ini 100% offline dan tidak memiliki izin internet.
+3. **Verifikasi Integritas SHA-256**:
+   - Anda dapat memastikan keaslian berkas dengan mencocokkan nilai checksum terhadap file `SHA256SUMS.txt` yang disertakan di halaman rilis:
+     - **Windows PowerShell**: `Get-FileHash -Algorithm SHA256 <nama_file.apk>`
+     - **Linux / macOS**: `sha256sum <nama_file.apk>`
+
+### 🔄 Cara Memperbarui Aplikasi & Kebijakan Offline
+- **Pembaruan Manual**: Unduh berkas APK versi terbaru dan pasang langsung di atas instalasi lama. Karena ditandatangani dengan kunci resmi yang sama, Android akan memperbarui aplikasi tanpa menghapus basis data, riwayat dokumen, bookmark, atau izin folder SAF Anda.
+- **Pengelola Pembaruan (Opsional)**: Anda dapat menggunakan manajer aplikasi open-source seperti [Obtainium](https://github.com/ImranR98/Obtainium) untuk memantau rilis baru langsung dari repositori GitHub ini.
+- **Kebijakan Pembaruan (Zero-Telemetry)**: Aplikasi ini **TIDAK PERNAH** melakukan pengecekan pembaruan otomatis di latar belakang melalui jaringan internet. Aplikasi sepenuhnya offline dan tidak melakukan koneksi keluar apa pun.
+
+### 💬 Bantuan & Pelaporan Masalah
+- **Laporan Masalah (Bug Report)**: Jika menemukan kendala fungsionalitas, silakan buka Issue di GitHub. **PENTING**: Jangan pernah melampirkan berkas dokumen pribadi atau rahasia ke dalam laporan issue publik.
+- **Keamanan**: Jika menemukan potensi masalah keamanan, silakan hubungi tim pemelihara secara privat.
+
+---
+
 ## 📋 Matriks Dukungan Format (Honest Reality Matrix)
 
 Seluruh status kemampuan berikut didukung oleh pembuktian otomatis melalui rangkaian 148 test unit, widget, dan integrasi:

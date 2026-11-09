@@ -5,6 +5,12 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('key.properties')
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "com.example.documentreviewer"
     compileSdk = 36
@@ -30,17 +36,33 @@ android {
 
     signingConfigs {
         release {
-            def keystoreFile = System.getenv("KEYSTORE_PATH") ? file(System.getenv("KEYSTORE_PATH")) : null
-            if (keystoreFile != null && keystoreFile.exists()) {
-                storeFile keystoreFile
+            if (keystorePropertiesFile.exists() && keystoreProperties['storeFile']) {
+                def storeFilePath = keystoreProperties['storeFile']
+                def sf = file(storeFilePath)
+                if (!sf.isAbsolute()) {
+                    sf = rootProject.file(storeFilePath)
+                }
+                if (!sf.exists()) {
+                    throw new GradleException("Keystore file not found at: ${sf.absolutePath}")
+                }
+                storeFile sf
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            } else if (System.getenv("KEYSTORE_PATH")) {
+                def envKeystore = file(System.getenv("KEYSTORE_PATH"))
+                if (!envKeystore.exists()) {
+                    throw new GradleException("Keystore file from KEYSTORE_PATH not found: ${envKeystore.absolutePath}")
+                }
+                storeFile envKeystore
                 storePassword System.getenv("KEYSTORE_PASSWORD")
                 keyAlias System.getenv("KEY_ALIAS")
                 keyPassword System.getenv("KEY_PASSWORD")
             } else {
-                storeFile file("${System.getProperty('user.home')}/.android/debug.keystore")
-                storePassword "android"
-                keyAlias "androiddebugkey"
-                keyPassword "android"
+                def isReleaseTask = gradle.startParameter.taskNames.any { it.toLowerCase().contains("release") }
+                if (isReleaseTask) {
+                    throw new GradleException("Release signing configuration missing! Please provide android/key.properties or set environment variables (KEYSTORE_PATH, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD).")
+                }
             }
         }
     }
@@ -67,6 +89,24 @@ android {
 
     testOptions {
         unitTests.returnDefaultValues = true
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.each { output ->
+            def abi = output.getFilter(com.android.build.OutputFile.ABI)
+            def baseCode = flutter.versionCode ? flutter.versionCode.toInteger() : 1
+            def abiOffset = 0
+            if (abi == 'armeabi-v7a') {
+                abiOffset = 1
+            } else if (abi == 'arm64-v8a') {
+                abiOffset = 2
+            } else if (abi == 'x86_64') {
+                abiOffset = 3
+            } else {
+                abiOffset = 0 // universal
+            }
+            output.versionCodeOverride = (baseCode * 10) + abiOffset
+        }
     }
 }
 

@@ -1,0 +1,192 @@
+name: Release Build & Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  build-and-release:
+    name: Build Signed Artifacts & Create Draft Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4.5.0
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter 3.24.5
+        uses: subosito/flutter-action@v2.16.0
+        with:
+          flutter-version: '3.24.5'
+          channel: 'stable'
+          cache: true
+
+      - name: Setup Android Build Tools
+        run: |
+          BUILD_TOOLS_VERSION=$(ls -1 "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)
+          echo "APKSIGNER=$ANDROID_HOME/build-tools/$BUILD_TOOLS_VERSION/apksigner" >> $GITHUB_ENV
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Static Code Analysis
+        run: flutter analyze --no-pub
+
+      - name: Run Automated Test Suite
+        run: flutter test
+
+      - name: Decode Release Keystore
+        id: decode_keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::SIGNING_KEYSTORE_BASE64 secret is not configured!"
+            exit 1
+          fi
+          mkdir -p android/app/keystore
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/keystore/release.keystore
+          echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/android/app/keystore/release.keystore" >> $GITHUB_ENV
+
+      - name: Build Split per ABI APKs
+        env:
+          KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
+          KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: flutter build apk --release --split-per-abi
+
+      - name: Build Universal APK
+        env:
+          KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
+          KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: flutter build apk --release
+
+      - name: Build Android App Bundle (AAB)
+        env:
+          KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
+          KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: flutter build appbundle --release
+
+      - name: Prepare & Rename Distribution Artifacts
+        id: prep_artifacts
+        run: |
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
+
+          mkdir -p dist
+
+          # Copy and rename split APKs
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk dist/DocumentReviewer-${TAG_NAME}-arm64-v8a.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk dist/DocumentReviewer-${TAG_NAME}-armeabi-v7a.apk
+          cp build/app/outputs/flutter-apk/app-x86_64-release.apk dist/DocumentReviewer-${TAG_NAME}-x86_64.apk
+
+          # Copy and rename universal APK
+          cp build/app/outputs/flutter-apk/app-release.apk dist/DocumentReviewer-${TAG_NAME}-universal.apk
+
+          # Copy and rename AAB
+          cp build/app/outputs/bundle/release/app-release.aab dist/DocumentReviewer-${TAG_NAME}.aab
+
+      - name: Verify APK Signatures with apksigner
+        run: |
+          echo "Verifying signature of all APKs..."
+          for apk in dist/*.apk; do
+            echo "--> Verifying $apk"
+            "$APKSIGNER" verify --verbose --print-certs "$apk" > cert_info.txt
+            cat cert_info.txt
+
+            # Reject debug certificate
+            if grep -q "CN=Android Debug" cert_info.txt; then
+              echo "::error::APK $apk was signed with DEBUG certificate! Failing build."
+              exit 1
+            fi
+
+            # Ensure valid signature
+            if ! grep -q "Verified using v2 scheme (APK Signature Scheme v2): true" cert_info.txt; then
+              echo "::error::APK $apk does not satisfy APK Signature Scheme v2!"
+              exit 1
+            fi
+          done
+
+      - name: Generate SHA-256 Checksums
+        run: |
+          cd dist
+          sha256sum *.apk *.aab > SHA256SUMS.txt
+          echo "--- SHA256 Checksums ---"
+          cat SHA256SUMS.txt
+
+      - name: Extract Release Notes from CHANGELOG.md
+        run: |
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG_NAME#v}"
+          
+          # Extract section from CHANGELOG.md corresponding to this release
+          python3 -c "
+          import re, sys
+
+          version = sys.argv[1]
+          with open('CHANGELOG.md', 'r', encoding='utf-8') as f:
+              content = f.read()
+
+          pattern = r'## \[' + re.escape(version) + r'\][^\n]*\n(.*?)(?=\n## \[|\Z)'
+          match = re.search(pattern, content, re.DOTALL)
+          if match:
+              notes = match.group(1).strip()
+          else:
+              notes = f'Release {version}'
+
+          with open('RELEASE_NOTES.md', 'w', encoding='utf-8') as out:
+              out.write(notes + '\n\n### Verifikasi Checksum (SHA-256)\n```\n')
+              with open('dist/SHA256SUMS.txt', 'r', encoding='utf-8') as cs:
+                  out.write(cs.read())
+              out.write('```\n')
+          " "$VERSION"
+          cat RELEASE_NOTES.md
+
+      - name: Attest Build Provenance (Artifact Attestation)
+        continue-on-error: true
+        uses: actions/attest-build-provenance@v1.4.3
+        with:
+          subject-path: |
+            dist/*.apk
+            dist/*.aab
+
+      - name: Create Draft Release on GitHub
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PRERELEASE_FLAG=""
+          if echo "$TAG_NAME" | grep -Eq -- '-(beta|rc|alpha)'; then
+            PRERELEASE_FLAG="--prerelease"
+            echo "Marking release as PRE-RELEASE."
+          fi
+
+          gh release create "$TAG_NAME" \
+            dist/* \
+            --draft \
+            $PRERELEASE_FLAG \
+            --title "Document Reviewer $TAG_NAME" \
+            --notes-file RELEASE_NOTES.md
+
+      - name: Clean Up Keystore
+        if: always()
+        run: |
+          rm -rf android/app/keystore
+          echo "Release keystore deleted from runner filesystem."
