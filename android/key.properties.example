@@ -8,3 +8,4 @@ keyPassword=YOUR_KEY_PASSWORD
 keyAlias=documentreviewer
 # Use either absolute path or relative to android/ directory:
 storeFile=C:\\Users\\ACER\\.android\\document-reviewer-release.keystore
+

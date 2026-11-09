@@ -112,3 +112,4 @@ Jika ditemukan masalah fatal atau regresi data (P0 Bug) setelah rilis dipublikas
   - Mendaftarkan Play App Signing key di Google Play Console.
   - Melengkapi kuesioner **Data Safety** (100% no collection, no sharing).
   - Deklarasi izin non-internet dan kepatuhan terhadap Target SDK terbaru (SDK 35/36).
+
