@@ -1,0 +1,28 @@
+name: Feature Request
+description: Usulkan fitur baru atau peningkatan fungsionalitas
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Usulan fitur harus selaras dengan prinsip inti Document Reviewer: **100% Offline-First, Zero-Tracking, dan Perlindungan File Asli**.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Masalah / Kebutuhan
+      placeholder: Saya sering membutuhkan kemampuan untuk...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Solusi yang Diusulkan
+      placeholder: Tambahkan tombol aksi pada toolbar yang memungkinkan...
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatif yang Dipertimbangkan
+      placeholder: Cara kerja saat ini adalah...
