@@ -48,10 +48,13 @@ jobs:
       - name: Run Automated Test Suite
         run: flutter test
 
-      - name: Decode Release Keystore
+      - name: Decode Release Keystore & Generate key.properties
         id: decode_keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
           if [ -z "$KEYSTORE_BASE64" ]; then
             echo "::error::SIGNING_KEYSTORE_BASE64 secret is not configured!"
@@ -59,30 +62,24 @@ jobs:
           fi
           mkdir -p android/app/keystore
           echo "$KEYSTORE_BASE64" | base64 --decode > android/app/keystore/release.keystore
-          echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/android/app/keystore/release.keystore" >> $GITHUB_ENV
+
+          echo "Verifying keystore password with keytool..."
+          keytool -list -keystore android/app/keystore/release.keystore -storepass "$KEYSTORE_PASSWORD"
+
+          cat <<EOF > android/key.properties
+storePassword=$KEYSTORE_PASSWORD
+keyPassword=$KEY_PASSWORD
+keyAlias=$KEY_ALIAS
+storeFile=$GITHUB_WORKSPACE/android/app/keystore/release.keystore
+EOF
 
       - name: Build Split per ABI APKs
-        env:
-          KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
-          KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: flutter build apk --release --split-per-abi
 
       - name: Build Universal APK
-        env:
-          KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
-          KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: flutter build apk --release
 
       - name: Build Android App Bundle (AAB)
-        env:
-          KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
-          KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: flutter build appbundle --release
 
       - name: Prepare & Rename Distribution Artifacts
@@ -185,8 +182,9 @@ jobs:
             --title "Document Reviewer $TAG_NAME" \
             --notes-file RELEASE_NOTES.md
 
-      - name: Clean Up Keystore
+      - name: Clean Up Keystore & key.properties
         if: always()
         run: |
           rm -rf android/app/keystore
-          echo "Release keystore deleted from runner filesystem."
+          rm -f android/key.properties
+          echo "Release keystore and key.properties deleted from runner filesystem."
