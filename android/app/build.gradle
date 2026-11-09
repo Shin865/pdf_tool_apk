@@ -1,5 +1,3 @@
-import org.gradle.api.GradleException
-
 plugins {
     id "com.android.application"
     id "kotlin-android"
@@ -45,7 +43,7 @@ android {
                     sf = rootProject.file(storeFilePath)
                 }
                 if (!sf.exists()) {
-                    throw new GradleException("Keystore file not found at: ${sf.absolutePath}")
+                    throw new IllegalStateException("Keystore file not found at: ${sf.absolutePath}")
                 }
                 storeFile sf
                 storePassword keystoreProperties['storePassword']
@@ -54,7 +52,7 @@ android {
             } else if (System.getenv("KEYSTORE_PATH")) {
                 def envKeystore = file(System.getenv("KEYSTORE_PATH"))
                 if (!envKeystore.exists()) {
-                    throw new GradleException("Keystore file from KEYSTORE_PATH not found: ${envKeystore.absolutePath}")
+                    throw new IllegalStateException("Keystore file from KEYSTORE_PATH not found: ${envKeystore.absolutePath}")
                 }
                 storeFile envKeystore
                 storePassword System.getenv("KEYSTORE_PASSWORD")
@@ -63,7 +61,7 @@ android {
             } else {
                 def isReleaseTask = gradle.startParameter.taskNames.any { it.toLowerCase().contains("release") }
                 if (isReleaseTask) {
-                    throw new GradleException("Release signing configuration missing! Please provide android/key.properties or set environment variables (KEYSTORE_PATH, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD).")
+                    throw new IllegalStateException("Release signing configuration missing! Please provide android/key.properties or set environment variables (KEYSTORE_PATH, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD).")
                 }
             }
         }
